@@ -1,2 +1,4 @@
 /HowDeSBT_strains/build/
 HowDeSBT_strains/howdesbt
+.history
+*.pyc
