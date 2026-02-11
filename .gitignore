@@ -2,3 +2,5 @@
 HowDeSBT_strains/howdesbt
 .history
 *.pyc
+data_test
+build-conda
