@@ -72,17 +72,9 @@ if __name__ == '__main__':
     required=True, 
     help='Clingo path.'
     )
-    required_identification.add_argument('--file', '-f', dest='file',  metavar='IN_FILE2', 
-    required=True,  
-    help='Results file from Howde output.'
-    )
     required_identification.add_argument('--length', '-le', dest='length', metavar='IN_FILE3',  
     required=True,  
     help='File with one genome and is length per line.'
-    )
-    required_identification.add_argument('--listname', '-l', dest='listname', metavar='IN_FILE4', 
-    required=True, 
-    help='Name of strains in the same order than in matrix.'
     )
     optional_identification.add_argument('--output', '-o', dest='output', metavar='OUTPUT_FILE', 
     default='out.txt', 

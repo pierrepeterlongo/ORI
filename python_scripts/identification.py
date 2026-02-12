@@ -106,22 +106,39 @@ def get_length(lengthFile: str) -> dict:
     with open(lengthFile,'r') as f:
         for line in f:
             line = line.strip().split('\t')
-            genome = line[0]
+            genome = line[0].replace(".","_")
             length = line[1]
             lengths[genome]=length
     return lengths
             
+def create_non_decorated_matrix(filename: str, outfilename: str):
+    ''' Pierre: create the input_matrix removing headers (first line and first column)
+    '''
+    
+    with open(filename, 'r') as fd, open(outfilename, 'w') as fd_out:
+        fd.readline() # Pierre: do not consider first line
+        for line in fd:
+            line=line.strip().split()[1:]
+            formated_line = " ".join(line)
+            fd_out.write(f"{formated_line}\n")
+
+            
         
 def read_species_names(filename: str) -> str:
     '''Get the names of the strains.
-    Return each atom species({number},"{name}")'''
+    Return each atom species({number},"{name}")
+    
+    Modified by Pierre Peterlongo, input is now the kmindex output matrix'''
     
     names = []
     with open(filename) as fd:
-        for i,l in enumerate(fd):
-            name = l.strip()
-            num = i+1
-            name = name
+        # read first line: 
+        # test_coli       head_042_GCA_000027125_1_fasta  head_101-1_GCA_000168095_1_fasta        head_11368_GCA_000091005_1_fasta        head_12009_GCA_000010745_1_fasta        head_2H-327-20_GCA_902849165_1_fasta    head_4051-6_GCA_012532675_1_fasta  head_4608-58_GCA_000805835_1_fasta      head_53638_GCA_000167915_2_fasta        head_536_GCA_000013305_1_fasta  head_55989_GCA_000026245_1_fasta        head_921A_GCA_900499975_1_fasta    head_94389_GCA_001514625_1_fasta        head_APECO78_GCA_000332755_1_fasta      head_ATCC35469T_GCA_000026225_1_fasta   head_B1147_GCA_001660175_1_fasta        head_B253_GCA_000190495_1_fasta head_B7A_GCA_000725265_1_fasta     head_CFT073_GCA_000007445_1_fasta       head_CIP61_11_GCA_900236115_1_fasta     head_E1118_GCA_002109985_1_fasta        head_E24377A_GCA_000017745_1_fasta      head_ECOR01_GCA_002190105_1_fasta  head_ECOR24_GCA_002190595_1_fasta       head_ECOR37_GCA_002190835_1_fasta       head_ECOR42_GCA_002190935_1_fasta       head_ECOR49_GCA_002190975_1_fasta       head_ECOR60_GCA_002189835_1_fasta       head_ECOR63_GCA_002189905_1_fasta  head_ECOR64_GCA_002189945_1_fasta       head_ED1a_GCA_000026305_1_fasta head_FN-B26_GCA_902505495_1_fasta       head_H1-003-0072_GCA_902709615_1_fasta  head_H1-006-0003_GCA_902711215_1_fasta     head_H1-006-0025_GCA_902711405_1_fasta  head_H10407_GCA_000210475_1_fasta       head_H176_GCA_902842355_1_fasta head_H223_GCA_002110555_1_fasta head_H299_GCA_000176695_2_fasta head_HIPH08472_GCA_001514985_1_fasta       head_HS_GCA_000017765_1_fasta   head_NA114_GCA_000214765_3_fasta        head_RDEx444_GCA_003123505_1_fasta      head_S286_GCA_013363015_1_fasta head_S88_GCA_000026285_2_fasta  head_SE15_GCA_000010485_1_fasta    head_SMS-3-5_GCA_000019645_1_fasta      head_TW09231_GCA_000208465_2_fasta      head_UMN026_GCA_000026325_2_fasta
+        line = fd.readline().strip().split()
+        # remove first entry
+        line = line[1:]
+        for num, name in enumerate(line):
+            name=name.rstrip("_fasta").rstrip("_fna").rstrip("_fq").rstrip("_fa").rstrip("_fastq")
             names.append(f'species({num},"{name}").')
     return('\n'.join(names)+'\n')
 
@@ -131,34 +148,51 @@ def read_matrix(filename: str,nbchoices: int,threshold: float) -> str:
     
     decimal.getcontext().prec = 2
     l=[]
-    i=0
     nbchoices = int(nbchoices)
     
     with open(filename) as fd:
-        for line in fd:
-            i=i+1
-            sline=line.strip().split(" ")
+        fd.readline() # Pierre: do not consider first line
+        for i, line in enumerate(fd):
+            sline=line.strip().split()[1:] # remove the read name (Pierre Peterlongo using kmindex output)
             vector = []
             for j,w in enumerate(sline):
                 if (decimal.Decimal(w)*100) >= int(threshold):
                     vector.append((j+1,int(decimal.Decimal(w)*100))) 
-            if len(vector)< int(nbchoices*1.5):
+            if len(vector) < int(nbchoices*1.5):
+                # print(f"PIERRE (nbchoices,i,vector) {(nbchoices,i,vector)}")
                 a = rank_list(nbchoices,i,vector)
+                # print(f"PIERRE a is {a}")
                 l.extend(a)
     return('\n'.join(l)+'\n')
 
-def rank_list(n: int, ident: str, x: int) -> str:
+# def rank_list(n: int, ident: int, x: list[tuple[int, int]]) -> list[str]:
+def rank_list(n, ident, x):
     ''' Gives the rank of at most n greatest elements greater than th in a list x with possible ties
     Returns triplets (id, index in x, rank in x)'''
-    m= len(x)
-    mn=min(n,m)
-    t = list(range(mn))
+    m = len(x)
+    mn = min(n,m)
     s = sorted( x,  key=itemgetter(1), reverse=True)
+    # print(f"PIERRE sorted s {s} of len {len(s)}")
+    # print(f"PIERRE mn is {mn}")
+    # ## DEBUG
+    # s = [(1,100),(3,83), (5,83)]
+    # print(f"PIERRE sorted s {s}")
+    # mn=len(s)
+    # ## ENDEBUG
 
+    t = list(range(mn))
     for k in range(mn-1):
         t[k+1] = t[k] + (s[k+1][1] != s[k][1])
+    
+    # print(f"PIERRE strange t {t}")
 
-    return [f'readsstrainsrank({ident},{j}, {t[mn-1]-t[i]}).' for i,(j,w) in enumerate(s[:n])]
+    res = []
+    for i,(j,_) in enumerate(s[:n]):
+        res.append(f'readsstrainsrank({ident},{j},{t[mn-1]-t[i]}).')
+
+    return res
+    
+    
 
 def treat_strain(strain,dic):
     '''Take a dictionary and a set of strains and add 1 to the set of strains'''
@@ -204,7 +238,7 @@ def quantification(file,strains,marginals):
             treat_strain(strain,dic)
     #print(dic)
     
-def calcul_abondance(out,strains,nb_strains,abondances,reads,length):
+def compute_abundances(out,strains,nb_strains,abondances,reads,length):
     '''Computation of the abondance, this part of the code still needs to be tested and improved'''
     
     print(f'Start : {abondances}')
@@ -236,26 +270,39 @@ def main(args):
     clyngor.CLINGO_BIN_PATH = args.clingo_path
     
     #Get the strains names 
-    names = read_species_names(args.listname)
+    names = read_species_names(args.matrix)
+    # print(f"Pierre names={names}")
     #Get the strains for every reads
     strainsreads = read_matrix(args.matrix,args.nbchoices,args.threshold)
+    # print(f"Pierre strainsreads={strainsreads}")
     
     #Get genomes length
+    # here genome names still contain '.' symbols. 
     lengths = get_length(args.length)
+    # print(f"Pierre lenghts {lengths}")
+    
+    # Pierre: create a non decodated matrix in 
+    outfilename="temp_matrix.tsv"
+    create_non_decorated_matrix(args.matrix, outfilename)
 
     #Initialisation of the constant for the ASP script
-    constante = f'#const nf=1. \n#const threshold={args.threshold}. \n#const nbchoices={args.nbchoices}.'
-    matrix = f'matrixreadspecies(1,"{args.matrix}").'
+    constant = f'#const nf=1. \n#const threshold={args.threshold}. \n#const nbchoices={args.nbchoices}.'
+    matrix = f'matrixreadspecies(1,"{outfilename}").'
     
     #order the ASP script to run in toexec and solve it
-    toexec = constante+matrix+names+strainsreads+ASP
+    toexec = f"{constant}{matrix}{names}{strainsreads+ASP}"
+    # print(f"Pierre: toexec is {toexec}")
     answers = solve(inline=toexec,options='--opt-mode=optN')
-    
+    # print(f"Pierre: SOLVED {answers}")
+    # for answer in answers:
+        # print(f"Pierre: answer is")
+        # print(answer)    
+        
     strains_in = set()
     i=0
     models = []
     for answer,optimization,optimality,answerNumber in answers.with_answer_number:    
-        #print(f'Answer {i+1}',optimization,optimality,answerNumber)
+        print(f'Answer {i+1}',optimization,optimality,answerNumber)
         if optimality:
             models.append(answer)
         i += 1
@@ -289,29 +336,39 @@ def main(args):
             strains_in = set(s)
     #Here we have the strains present in the sample (strains_in)
     
+    # reads = []
+    # with open(args.file,'r') as f: #We read the results file from HowDeSBT
+    #     f.readline()
+    #     genomes = set()
+    #     for line in f:
+    #         if line[0] == '*':
+    #             reads.append(genomes)
+    #             genomes = set()
+    #         else:
+    #             line = line.strip().split(' ')
+    #             if '.fna' in line[0] or '.fasta' in line[0]:
+    #                 genome = ".".join(line[0].split('.')[:-1])
+    #             else:
+    #                 genome= line[0]
+    #             if '.fna' in line[0] or '.fasta' in line[0]:
+    #                 if genome[-1] == '_':
+    #                     genome = genome[:-1]
+    #             if genome in strains_in:
+    #                 genomes.add(genome)
+    # reads.append(genomes)
+    
+    
+    # PIERRE Try to adapt the Gregoire's code. Dirty
     reads = []
-    with open(args.file,'r') as f: #We read the results file from HowDeSBT
-        f.readline()
-        genomes = set()
-        for line in f:
-            if line[0] == '*':
-                reads.append(genomes)
-                genomes = set()
-            else:
-                line = line.strip().split(' ')
-                if '.fna' in line[0] or '.fasta' in line[0]:
-                    genome = ".".join(line[0].split('.')[:-1])
-                else:
-                    genome= line[0]
-                if '.fna' in line[0] or '.fasta' in line[0]:
-                    if genome[-1] == '_':
-                        genome = genome[:-1]
-                if genome in strains_in:
-                    genomes.add(genome)
-    reads.append(genomes)
+    for strain in lengths.keys():
+        fake_set = set() 
+        fake_set.add(strain) 
+        reads.append(fake_set)
+        
     
     strains = sorted(list(strains_in))
     nb_strains = int(len(strains))
+    print(f"PIERRE strains in {strains}")
     
     #Start the abondance computation with all strains at the same level
     abondances = []
@@ -319,16 +376,18 @@ def main(args):
         abondances.append(float(1/nb_strains))
         
     #Get the length of each strains from the sample
-    longueurs = []
+    strain_lengths = []
     for s in strains:
         try :
-            longueurs.append(float(lengths[s]))
+            strain_lengths.append(float(lengths[s]))
         except KeyError:
             s = '-'.join(s.split('_'))
-            longueurs.append(float(lengths[s]))
+            strain_lengths.append(float(lengths[s]))
+    
+    print(f"PIERRE strain_lengths in {strain_lengths}")
     
     #Compute the abondance for each strain and write the output file
-    calcul_abondance(args.output,strains,nb_strains,abondances,reads,longueurs)
+    compute_abundances(args.output,strains,nb_strains,abondances,reads,strain_lengths)
         
 
 if __name__ == "__main__":
